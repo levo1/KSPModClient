@@ -3,6 +3,7 @@ package ksp.modmanager.api;
 import com.google.api.client.util.Key;
 
 public class ApiMod {
+	public boolean enabled = false;
 	@Key
 	private long id;
 	@Key
@@ -17,6 +18,8 @@ public class ApiMod {
 	private String avatar;
 	@Key
 	private String sha1sum;
+	@Key
+	private long size;
 
 	public long getId() {
 		return id;
@@ -44,6 +47,23 @@ public class ApiMod {
 
 	public String getSha1sum() {
 		return sha1sum;
+	}
+
+	public long getSize() {
+		return size;
+	}
+
+	public String getHumanReadableSize() {
+		boolean si = true;
+
+		int unit = si ? 1000 : 1024;
+		if (size < unit)
+			return size + " B";
+		int exp = (int) (Math.log(size) / Math.log(unit));
+		String pre = (si ? "kMGTPE" : "KMGTPE").charAt(exp - 1)
+				+ (si ? "" : "i");
+		return String.format("%.1f %sB", size / Math.pow(unit, exp), pre);
+
 	}
 
 	public String getDownloadUrl() {
