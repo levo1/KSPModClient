@@ -16,7 +16,7 @@ public class ModManagerGui extends JFrame {
 	public ModManagerGui() {
 		setTitle("KSP Mod Manager");
 		setLocationRelativeTo(null);
-		setDefaultCloseOperation(EXIT_ON_CLOSE);
+		setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 		setLayout(new BorderLayout(5, 5));
 
 		add(new AddModPanel(modManager), BorderLayout.CENTER);
