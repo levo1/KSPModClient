@@ -52,7 +52,7 @@ public class ModManager {
 	public String manualKspPath(boolean exitOnFail, String originalPath) {
 		String selectedPath = null;
 		String kspPathTemp = null;
-		JFileChooser fileChooser = new JFileChooser(selectedPath);
+		JFileChooser fileChooser = new JFileChooser(originalPath);
 		fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
 		int returnVal = fileChooser.showOpenDialog(null);
 		if (returnVal != JFileChooser.APPROVE_OPTION) {
