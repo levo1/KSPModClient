@@ -55,8 +55,10 @@ public class ModManager {
 		JFileChooser fileChooser = new JFileChooser(originalPath);
 		fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
 		int returnVal = fileChooser.showOpenDialog(null);
-		if (returnVal != JFileChooser.APPROVE_OPTION) {
+		if (returnVal != JFileChooser.APPROVE_OPTION && exitOnFail == true) {
 			System.exit(1);
+		} else if (returnVal != JFileChooser.APPROVE_OPTION) {
+			return originalPath;
 		}
 
 		selectedPath = fileChooser.getSelectedFile().getAbsolutePath();
