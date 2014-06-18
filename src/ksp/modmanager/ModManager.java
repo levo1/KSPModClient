@@ -19,6 +19,9 @@ public class ModManager {
 	private String kspPath = Config.INSTANCE.getKspDirectory();
 
 	public ModManager() {
+		if(kspPath != null && !testKspDir(kspPath))
+			kspPath = null;
+		
 		if (kspPath == null) {
 			for (String path : kspPaths) {
 				path += "SteamApps/common/Kerbal Space Program";
