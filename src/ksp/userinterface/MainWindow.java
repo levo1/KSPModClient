@@ -105,7 +105,12 @@ public class MainWindow extends JFrame {
 
         ImageIcon settingsIcon = new ImageIcon(getClass().getResource("/res/settings2.png"));
         JButton settingsButton = new JButton("Settings", settingsIcon);
-        
+
+        settingsButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				new SettingsWindow().setVisible(true);			
+			}
+		});
         
         
         toolbar.add(launchButton);
