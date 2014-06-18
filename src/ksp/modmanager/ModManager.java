@@ -13,7 +13,7 @@ public class ModManager extends JFrame {
 	public ModManager() {
 		setTitle("KSP Mod Manager");
 		setLocationRelativeTo(null);
-		setDefaultCloseOperation(EXIT_ON_CLOSE);
+		setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 		setLayout(new BorderLayout(5, 5));
 
 //		JTable table = new JTable() {
