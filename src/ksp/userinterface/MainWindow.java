@@ -10,6 +10,7 @@ import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
+import java.util.concurrent.ExecutionException;
 
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -27,8 +28,13 @@ import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.text.BadLocationException;
 
+import ksp.modmanager.JModList;
 import ksp.modmanager.ModManager;
 import ksp.modmanager.ModManagerGui;
+import ksp.modmanager.SwingWebWorker;
+import ksp.modmanager.api.ApiMod;
+import ksp.modmanager.api.SearchResult;
+import ksp.modmanager.api.SearchUrl;
 
 public class MainWindow extends JFrame {
 	private ModManager modManager = new ModManager(); 
@@ -96,16 +102,20 @@ public class MainWindow extends JFrame {
         add(toolbar, BorderLayout.NORTH);
 
         // mod list
-        String[] columnNames = {"Mod Title", "Size", "Last Updated"};
-        Object[][] data = {
-                {"Space Stuff", "500mb", "1 day ago"},
-                {"Weeeeee", "35mb", "Today"},
-                {"More Space Things", "5mb", "3 weeks ago"},
-                {"STAR TREK: THE MOD", "120mb", "2 days ago"},
-                {"Yup", "260mb", "3 days ago"}
-        };
+        final JModList table = new JModList(modManager);
+        new SwingWebWorker<SearchResult>(new SearchUrl("mech"), SearchResult.class) {
 
-        JTable table = new JTable(data, columnNames);
+			@Override
+			protected void done() {
+				try {
+					for(ApiMod mod : get()) {
+						table.getModel().add(mod);
+					}
+				} catch (InterruptedException | ExecutionException e) {
+					e.printStackTrace();
+				}
+			}
+		}.execute();
 
         // description box
         JPanel rightPane = new JPanel();
@@ -152,7 +162,7 @@ public class MainWindow extends JFrame {
         gbc.weighty = 1.0;
         gbc.gridx = 0;
         gbc.gridy = 0;
-        pane.add(table, gbc);
+        pane.add(new JScrollPane(table), gbc);
 
         gbc.weightx = 0;
         gbc.weighty = 1.0;

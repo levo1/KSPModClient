@@ -16,7 +16,7 @@ public class ModManager {
 					+ "/Library/Application Support/Steam/",
 			System.getProperty("user.home") + "/Steam/",
 			System.getProperty("user.home") + "/.local/share/Steam/" };
-	private String kspPath = Config.INSTANCE.getKspDirectory();
+	private String kspPath = Config.get.getKspDirectory();
 
 	public ModManager() {
 		if(kspPath != null && !testKspDir(kspPath))
@@ -67,7 +67,7 @@ public class ModManager {
 				}
 			}
 
-			Config.INSTANCE.setKspDirectory(kspPath);
+			Config.get.setKspDirectory(kspPath).save();
 		}
 	}
 

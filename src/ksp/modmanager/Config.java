@@ -10,7 +10,7 @@ import com.google.api.client.json.JsonGenerator;
 import com.google.api.client.util.Key;
 
 public class Config {
-	public static final Config INSTANCE;
+	public static final Config get;
 	private static final File datadir = new File(
 			System.getProperty("user.home") + "/.ksp-mm/");
 	private static final File configFile = new File(datadir, "config.json");
@@ -21,13 +21,13 @@ public class Config {
 
 		if (configFile.exists()) {
 			try (FileInputStream fis = new FileInputStream(configFile)) {
-				INSTANCE = Start.JSON_FACTORY.createJsonParser(fis)
-						.parseAndClose(Config.class);
+				get = Start.JSON_FACTORY.createJsonParser(fis).parseAndClose(
+						Config.class);
 			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}
 		} else {
-			INSTANCE = new Config();
+			get = new Config();
 		}
 	}
 
@@ -35,7 +35,6 @@ public class Config {
 	private String kspDirectory = null;
 
 	public Config() {
-		
 	}
 
 	public void save() {
@@ -54,8 +53,8 @@ public class Config {
 		return kspDirectory;
 	}
 
-	public void setKspDirectory(String kspDirectory) {
+	public Config setKspDirectory(String kspDirectory) {
 		this.kspDirectory = kspDirectory;
-		save();
+		return this;
 	}
 }
