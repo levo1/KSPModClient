@@ -55,6 +55,10 @@ public class JModList extends JTable {
 		protected String[] columns = new String[] { "Enabled", "Mod Title",
 				"Size", "Status" };
 		protected List<ApiMod> mods = new ArrayList<>();
+		
+		public List<ApiMod> getModList() {
+            return mods;
+        }
 
 		@Override
 		public Object getValueAt(int rowIndex, int columnIndex) {
@@ -79,6 +83,10 @@ public class JModList extends JTable {
 			int rowIndex = this.mods.size();
 			this.mods.add(mod);
 			fireTableRowsInserted(rowIndex, rowIndex);
+		}
+		
+		public ApiMod get(int row) {
+			return this.mods.get(row);
 		}
 
 		@Override

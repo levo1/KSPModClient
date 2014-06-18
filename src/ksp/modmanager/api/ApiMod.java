@@ -4,6 +4,7 @@ import com.google.api.client.util.Key;
 
 public class ApiMod {
 	public boolean enabled = false;
+	public boolean installing = false;
 	@Key
 	private long id;
 	@Key
@@ -75,6 +76,14 @@ public class ApiMod {
 	public String getPageUrl() {
 		return String.format("http://kerbal.curseforge.com/ksp-mods/%s",
 				getId());
+	}
+
+	public String getDirectoryName() {
+		return String.format("mod-%s", getId());
+	}
+	
+	public String getInfoName() {
+		return String.format("%s.modjson", getDirectoryName());
 	}
 
 }

@@ -19,7 +19,6 @@ import javax.swing.table.TableCellEditor;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumnModel;
 
-
 /**
  * The ButtonColumn class provides a renderer and an editor that looks like a
  * JButton. The renderer and editor will then be used for a specified column in
@@ -180,8 +179,7 @@ public class ButtonColumn extends AbstractCellEditor implements
 
 		// Invoke the Action
 
-		ActionEvent event = new ActionEvent(table,
-				ActionEvent.ACTION_PERFORMED, "" + row);
+		ActionEvent event = new ActionEvent(table, row, "" + row);
 		action.actionPerformed(event);
 	}
 

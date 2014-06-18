@@ -4,6 +4,7 @@ import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -71,9 +72,10 @@ public class AddModPanel extends JPanel {
 				install.setEnabled(true);
 				try {
 					SearchResult result = get();
-					for(ApiMod mod : result) {
-						modList.getModel().add(mod);
-					}
+					List<ApiMod> mods = modList.getModel().getModList();
+					mods.clear();
+					mods.addAll(result);
+					modList.getModel().fireTableDataChanged();
 				} catch (InterruptedException | ExecutionException e) {
 					e.printStackTrace();
 				}

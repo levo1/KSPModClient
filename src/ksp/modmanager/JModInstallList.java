@@ -7,6 +7,7 @@ import javax.swing.AbstractAction;
 import javax.swing.Action;
 import javax.swing.JLabel;
 import javax.swing.JTable;
+import javax.swing.SwingWorker;
 import javax.swing.table.AbstractTableModel;
 import javax.swing.table.TableModel;
 
@@ -22,8 +23,35 @@ public class JModInstallList extends JModList {
 		new ModButtonColumn(this, new AbstractAction() {
 
 			@Override
-			public void actionPerformed(ActionEvent e) {
-				System.out.println("Must install mod");
+			public void actionPerformed(final ActionEvent e) {
+				System.out.println("clicky");
+				final ApiMod mod = getModel().get(e.getID());
+				if (mod.installing)
+					return;
+				mod.installing = true;
+				getModel().fireTableRowsUpdated(e.getID(), e.getID());
+				new SwingWorker<Object, Object>() {
+
+					@Override
+					protected Object doInBackground() throws Exception {
+						System.out.println("Background woo");
+						try {
+							checker.installMod(mod);
+						} catch (Exception ex) {
+							ex.printStackTrace();
+							throw ex;
+						}
+						return null;
+					}
+					
+					@Override
+					protected void done() {
+						mod.installing = false;
+						getModel().fireTableDataChanged();
+						repaint();
+					}
+
+				}.execute();
 			}
 		}, 2);
 	}
@@ -49,7 +77,7 @@ public class JModInstallList extends JModList {
 			case 1:
 				return mod.getHumanReadableSize();
 			case 2:
-				return "Install";
+				return mod.installing ? "Installing..." : "Install";
 			}
 			return null;
 		}
@@ -85,16 +113,24 @@ public class JModInstallList extends JModList {
 		@Override
 		public Component getTableCellEditorComponent(JTable table,
 				Object value, boolean isSelected, int row, int column) {
-			if (!checker.isModInstalled(getModel().mods.get(row)))
+			ApiMod mod = getModel().mods.get(row);
+			if (!checker.isModInstalled(mod) && !mod.installing)
 				return super.getTableCellEditorComponent(table, value,
 						isSelected, row, column);
+
+			if (getModel().mods.get(row).installing)
+				alreadyInstalled.setText("Installing...");
+			else
+				alreadyInstalled.setText("Already installed");
+
 			return alreadyInstalled;
 		}
 
 		public Component getTableCellRendererComponent(JTable table,
 				Object value, boolean isSelected, boolean hasFocus, int row,
 				int column) {
-			if (!checker.isModInstalled(getModel().mods.get(row)))
+			ApiMod mod = getModel().mods.get(row);
+			if (!checker.isModInstalled(mod) && !mod.installing)
 				return super.getTableCellRendererComponent(table, value,
 						isSelected, hasFocus, row, column);
 
@@ -105,6 +141,11 @@ public class JModInstallList extends JModList {
 				alreadyInstalled.setForeground(table.getForeground());
 				alreadyInstalled.setBackground(table.getBackground());
 			}
+
+			if (getModel().mods.get(row).installing)
+				alreadyInstalled.setText("Installing...");
+			else
+				alreadyInstalled.setText("Already installed");
 
 			return alreadyInstalled;
 		}

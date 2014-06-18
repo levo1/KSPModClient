@@ -20,7 +20,7 @@
 				<configuration>
 					<archive>
 						<manifest>
-								<mainClass>ksp.modmanager.Start</mainClass>
+							<mainClass>ksp.modmanager.Start</mainClass>
 						</manifest>
 					</archive>
 					<descriptorRefs>
@@ -41,5 +41,17 @@
 			<artifactId>google-http-client-jackson2</artifactId>
 			<version>1.18.0-rc</version>
 		</dependency>
+		<dependency>
+			<groupId>com.google.guava</groupId>
+			<artifactId>guava</artifactId>
+			<version>17.0</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-io</artifactId>
+			<version>1.3.2</version>
+		</dependency>
+
+
 	</dependencies>
 </project>
