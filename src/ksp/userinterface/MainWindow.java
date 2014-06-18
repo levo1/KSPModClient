@@ -9,7 +9,12 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.io.IOException;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 import javax.swing.Box;
@@ -23,13 +28,19 @@ import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextArea;
 import javax.swing.JToolBar;
+import javax.swing.ListSelectionModel;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
+import javax.swing.event.TableModelEvent;
+import javax.swing.event.TableModelListener;
 import javax.swing.text.BadLocationException;
 
 import ksp.modmanager.Config;
 import ksp.modmanager.JModList;
+import ksp.modmanager.JModList.ModListModel;
 import ksp.modmanager.ModManager;
 import ksp.modmanager.ModManagerGui;
 import ksp.modmanager.SwingWebWorker;
@@ -146,6 +157,27 @@ public class MainWindow extends JFrame {
 
         // mod list
         final JModList table = new JModList(modManager);
+        final List<ApiMod> modList = table.getModel().getModList();
+        //table.removeColumn(table.getColumnModel().getColumn(4));
+        table.getColumnModel().getColumn(4).setMinWidth(0);
+        table.getColumnModel().getColumn(4).setMaxWidth(0);
+
+        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+
+        table.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
+            @Override
+            public void valueChanged(ListSelectionEvent e) {
+                int row = table.getSelectedRow();
+                long id = (long) table.getValueAt(row, 4);
+                for (ApiMod mod : modList) {
+                    if (mod.getId() == id) {
+                        setModDescription(mod.getTitle(), mod.getAuthor(), mod.getDescription());
+                    }
+                }
+            }
+        });
+
+
         new SwingWebWorker<SearchResult>(new SearchUrl("mech"), SearchResult.class) {
 
 			@Override

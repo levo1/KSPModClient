@@ -9,7 +9,6 @@ import javax.swing.AbstractAction;
 import javax.swing.Action;
 import javax.swing.JLabel;
 import javax.swing.JTable;
-import javax.swing.UIManager;
 import javax.swing.table.AbstractTableModel;
 import javax.swing.table.TableModel;
 
@@ -26,7 +25,7 @@ public class JModList extends JTable {
 
 	protected void setupButtons() {
 		new ModButtonColumn(this, new AbstractAction() {
-			
+
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				System.out.println("Must update");
@@ -53,7 +52,7 @@ public class JModList extends JTable {
 
 	public class ModListModel extends AbstractTableModel {
 		protected String[] columns = new String[] { "Enabled", "Mod Title",
-				"Size", "Status" };
+				"Size", "Status", "ID"};
 		protected List<ApiMod> mods = new ArrayList<>();
 
 		@Override
@@ -71,6 +70,8 @@ public class JModList extends JTable {
 				return mod.getHumanReadableSize();
 			case 3:
 				return "Update";
+			case 4:
+			    return mod.getId();
 			}
 			return null;
 		}
@@ -122,8 +123,12 @@ public class JModList extends JTable {
 		public int getColumnCount() {
 			return columns.length;
 		}
+
+        public List<ApiMod> getModList() {
+            return mods;
+        }
 	}
-	
+
 	public class ModButtonColumn extends ButtonColumn {
 		private JLabel upToDate = new JLabel("Up to date");
 
