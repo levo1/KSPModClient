@@ -167,13 +167,17 @@ public class MainWindow extends JFrame {
         table.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
             @Override
             public void valueChanged(ListSelectionEvent e) {
-                int row = table.getSelectedRow();
-                long id = (long) table.getValueAt(row, 4);
-                for (ApiMod mod : modList) {
-                    if (mod.getId() == id) {
-                        setModDescription(mod.getTitle(), mod.getAuthor(), mod.getDescription());
-                    }
-                }
+            	System.out.println(e.toString());
+            	if (table.getSelectedRow() >= 0) {
+            		int row = table.getSelectedRow();
+                    long id = (long) table.getValueAt(row, 4);
+                    for (ApiMod mod : modList) {
+                        if (mod.getId() == id) {
+                            setModDescription(mod.getTitle(), mod.getAuthor(), mod.getDescription());
+                        }
+                    }	
+            	}
+                
             }
         });
 
