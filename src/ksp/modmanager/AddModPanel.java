@@ -26,25 +26,11 @@ public class AddModPanel extends JPanel {
 
 	JTextField modname = new JTextField();
 	JButton install = new JButton("Search");
-	JModList modList = new JModInstallList(new ModInfoChecker() {
+	JModList modList;
+
+	public AddModPanel(ModManager checker) {
+		modList = new JModInstallList(checker);
 		
-		@Override
-		public boolean isModInstalled(ApiMod mod) {
-			return true;
-		}
-
-		@Override
-		public boolean isModEnabled(ApiMod mod) {
-			return true;
-		}
-
-		@Override
-		public boolean isUpdateAvailable(ApiMod mod) {
-			return true;
-		}
-	});
-
-	public AddModPanel() {
 		setLayout(new BorderLayout(5, 5));
 		JPanel topPanel = new JPanel();
 		topPanel.setLayout(new BorderLayout(5, 5));

@@ -14,7 +14,7 @@ import ksp.modmanager.JModList.ModListModel;
 import ksp.modmanager.api.ApiMod;
 
 public class JModInstallList extends JModList {
-	public JModInstallList(ModInfoChecker checker) {
+	public JModInstallList(ModManager checker) {
 		super(checker);
 	}
 

@@ -16,9 +16,9 @@ import javax.swing.table.TableModel;
 import ksp.modmanager.api.ApiMod;
 
 public class JModList extends JTable {
-	protected ModInfoChecker checker;
+	protected ModManager checker;
 
-	public JModList(ModInfoChecker checker) {
+	public JModList(ModManager checker) {
 		this.checker = checker;
 		setupButtons();
 	}

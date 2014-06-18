@@ -15,11 +15,11 @@ import com.google.api.client.json.jackson2.JacksonFactory;
 public class Start {
 	public static String SERVER = "http://ovh.minichan.org:7777/";
 	public static HttpRequestFactory requestFactory;
-	
+
 	static final HttpTransport HTTP_TRANSPORT = new NetHttpTransport();
 	static final JsonFactory JSON_FACTORY = new JacksonFactory();
 
-	public static void main(String[] args) throws Exception {
+	static {
 		requestFactory = HTTP_TRANSPORT
 				.createRequestFactory(new HttpRequestInitializer() {
 					@Override
@@ -27,9 +27,9 @@ public class Start {
 						request.setParser(new JsonObjectParser(JSON_FACTORY));
 					}
 				});
+	}
 
-
-
+	public static void main(String[] args) throws Exception {
 		SwingUtilities.invokeLater(new Runnable() {
 
 			@Override
@@ -40,7 +40,7 @@ public class Start {
 				} catch (Throwable t) {
 
 				}
-				new ModManager().setVisible(true);
+				new ModManagerGui().setVisible(true);
 			}
 		});
 	}
