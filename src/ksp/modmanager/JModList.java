@@ -20,6 +20,7 @@ public class JModList extends JTable {
 
 	public JModList(ModManager checker) {
 		this.checker = checker;
+		setAutoCreateRowSorter(true);
 		setupButtons();
 	}
 
