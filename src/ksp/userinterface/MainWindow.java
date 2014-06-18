@@ -28,6 +28,7 @@ import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.text.BadLocationException;
 
+import ksp.modmanager.Config;
 import ksp.modmanager.JModList;
 import ksp.modmanager.ModManager;
 import ksp.modmanager.ModManagerGui;
@@ -64,10 +65,21 @@ public class MainWindow extends JFrame {
 
         ImageIcon launchIcon = new ImageIcon(getClass().getResource("/res/laptop41.png"));
         JButton launchButton = new JButton("Launch", launchIcon);
+
+        launchButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+		        try {
+					Process p = Runtime.getRuntime().exec(Config.get.getKspDirectory() + "/KSP.exe");
+				} catch (IOException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
+			}
+		});
         
         ImageIcon addIcon = new ImageIcon(getClass().getResource("/res/add11.png"));
         JButton addButton = new JButton("Install Mod", addIcon);
-        
+
         addButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				SwingUtilities.invokeLater(new Runnable() {
@@ -85,6 +97,8 @@ public class MainWindow extends JFrame {
 				});
 			}
 		});
+        
+
 
         ImageIcon updateIcon = new ImageIcon(getClass().getResource("/res/low27.png"));
         JButton updateButton = new JButton("Update Mods", updateIcon);
