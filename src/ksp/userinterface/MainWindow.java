@@ -38,20 +38,39 @@ import ksp.modmanager.api.SearchResult;
 import ksp.modmanager.api.SearchUrl;
 
 public class MainWindow extends JFrame {
-	private ModManager modManager = new ModManager(); 
-	
+	private ModManager modManager = new ModManager();
+    private JTextArea message = new JTextArea(new String("By default, a text area does not wrap lines that are too long for the display area. Instead, "
+            + "it uses one line for all the text between newline characters and ï¿½ if the text area is within a scroll pane ï¿½ allows "
+            + "itself to be scrolled horizontally. This example turns line wrapping on with a call to the setLineWrap method and then "
+            + "calls the setWrapStyleWord method to indicate that the text area should wrap lines at word boundaries rather than at "
+            + "character boundaries. By default, a text area does not wrap lines that are too long for the display area. Instead, "
+            + "it uses one line for all the text between newline characters and ï¿½ if the text area is within a scroll pane ï¿½ allows "
+            + "itself to be scrolled horizontally. This example turns line wrapping on with a call to the setLineWrap method and "
+            + "then calls the setWrapStyleWord method to indicate that the text area should wrap lines at word boundaries rather "
+            + "than at character boundaries."));
+    private JLabel rightLabel = new JLabel(new String("<html><body width='150px'><b>Title</b>: <br/><b>Author</b>: </body></html>"));
+
+	private void setModDescription(String title, String author, String description) {
+        message.setText(description);
+	    rightLabel.setText("<html><body width='150px'><b>Title</b>: "
+	            + title + "<br/><b>Author</b>: "
+	            + author + "</body></html>");
+	}
+
     public MainWindow() throws IOException, BadLocationException {
         initUI();
     }
 
-    private void initUI() throws IOException, BadLocationException {    	
-    	
-    	try { 
+    private void initUI() throws IOException, BadLocationException {
+
+
+
+    	try {
     	    UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
     	} catch (Exception e) {
     	    e.printStackTrace();
     	}
-    	
+
         setLayout(new BorderLayout());
         setTitle("KSP Mod Manager");
         setSize(800, 600);
@@ -76,7 +95,7 @@ public class MainWindow extends JFrame {
 				}
 			}
 		});
-        
+
         ImageIcon addIcon = new ImageIcon(getClass().getResource("/res/add11.png"));
         JButton addButton = new JButton("Install Mod", addIcon);
 
@@ -97,22 +116,35 @@ public class MainWindow extends JFrame {
 				});
 			}
 		});
-        
+
 
 
         ImageIcon updateIcon = new ImageIcon(getClass().getResource("/res/low27.png"));
         JButton updateButton = new JButton("Update Mods", updateIcon);
+
+
+        updateButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                SwingUtilities.invokeLater(new Runnable() {
+
+                    @Override
+                    public void run() {
+                        setModDescription("Title!", "Rob", "Description goes in here");
+                    }
+                });
+            }
+        });
 
         ImageIcon settingsIcon = new ImageIcon(getClass().getResource("/res/settings2.png"));
         JButton settingsButton = new JButton("Settings", settingsIcon);
 
         settingsButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				new SettingsWindow().setVisible(true);			
+				new SettingsWindow().setVisible(true);
 			}
 		});
-        
-        
+
+
         toolbar.add(launchButton);
         toolbar.add(addButton);
         toolbar.add(updateButton);
@@ -141,11 +173,7 @@ public class MainWindow extends JFrame {
         //rightPane.setBorder(BorderFactory.createLineBorder(Color.BLACK));
         rightPane.setLayout(new BoxLayout(rightPane, BoxLayout.PAGE_AXIS));
 
-        String descriptionHeader = "<html><body width='150px'><b>Title</b>: MechJeb<br/><b>Author</b>: Jeb</body></html>";
-        JLabel rightLabel = new JLabel(descriptionHeader);
-        
-        String descriptionContents = "By default, a text area does not wrap lines that are too long for the display area. Instead, it uses one line for all the text between newline characters and — if the text area is within a scroll pane — allows itself to be scrolled horizontally. This example turns line wrapping on with a call to the setLineWrap method and then calls the setWrapStyleWord method to indicate that the text area should wrap lines at word boundaries rather than at character boundaries. By default, a text area does not wrap lines that are too long for the display area. Instead, it uses one line for all the text between newline characters and — if the text area is within a scroll pane — allows itself to be scrolled horizontally. This example turns line wrapping on with a call to the setLineWrap method and then calls the setWrapStyleWord method to indicate that the text area should wrap lines at word boundaries rather than at character boundaries.";
-        JTextArea message = new JTextArea(descriptionContents);
+
 
         message.setWrapStyleWord(true);
         message.setLineWrap(true);
@@ -155,19 +183,19 @@ public class MainWindow extends JFrame {
         message.setPreferredSize(new Dimension(150, 0));
         Font font = new Font("Verdana", Font.PLAIN, 12);
         message.setFont(font);
-        
+
         JScrollPane jsp = new JScrollPane(message,
                 ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
                 ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER
                 );
-        
+
         rightPane.add(rightLabel);
         rightPane.add(Box.createRigidArea(new Dimension(0,5)));
         rightPane.add(jsp);
         rightPane.add(Box.createRigidArea(new Dimension(0,5)));
-        
-        
-        
+
+
+
         // gridlayout
         JPanel pane = new JPanel(new GridBagLayout());
 
