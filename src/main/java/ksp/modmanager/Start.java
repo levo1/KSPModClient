@@ -1,5 +1,8 @@
 package ksp.modmanager;
 
+import java.io.IOException;
+import java.util.Scanner;
+
 import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpRequestFactory;
 import com.google.api.client.http.HttpRequestInitializer;
@@ -24,5 +27,17 @@ public class Start {
 						request.setParser(new JsonObjectParser(JSON_FACTORY));
 					}
 				});
+	}
+
+	public static String getVersion() {
+		try {
+			try (Scanner sc = new Scanner(Start.class.getResource(
+					"/res/VERSION").openStream()).useDelimiter("\\A")) {
+				return sc.hasNext() ? sc.next() : "INVALID";
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+			return "ERROR";
+		}
 	}
 }

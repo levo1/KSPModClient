@@ -8,13 +8,8 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
 import java.io.IOException;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -24,7 +19,6 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
-import javax.swing.JTable;
 import javax.swing.JTextArea;
 import javax.swing.JToolBar;
 import javax.swing.ListSelectionModel;
@@ -33,21 +27,16 @@ import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
-import javax.swing.event.TableModelEvent;
-import javax.swing.event.TableModelListener;
 import javax.swing.text.BadLocationException;
 
 import ksp.modmanager.Config;
 import ksp.modmanager.JModList;
-import ksp.modmanager.JModList.ModListModel;
 import ksp.modmanager.ModManager;
 import ksp.modmanager.ModManager.ModEvent;
 import ksp.modmanager.ModManager.ModEventListener;
 import ksp.modmanager.ModManagerGui;
-import ksp.modmanager.SwingWebWorker;
+import ksp.modmanager.Start;
 import ksp.modmanager.api.ApiMod;
-import ksp.modmanager.api.SearchResult;
-import ksp.modmanager.api.SearchUrl;
 
 public class MainWindow extends JFrame implements ModEventListener {
 	private ModManager modManager = new ModManager();
@@ -78,7 +67,7 @@ public class MainWindow extends JFrame implements ModEventListener {
 		}
 
 		setLayout(new BorderLayout());
-		setTitle("KSP Mod Manager");
+		setTitle("KSP Mod Manager - " + Start.getVersion());
 		setSize(800, 600);
 		setLocationRelativeTo(null);
 		setDefaultCloseOperation(EXIT_ON_CLOSE);
