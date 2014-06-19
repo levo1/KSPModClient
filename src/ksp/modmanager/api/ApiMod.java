@@ -1,5 +1,7 @@
 package ksp.modmanager.api;
 
+import java.util.List;
+
 import com.google.api.client.util.Key;
 
 public class ApiMod {
@@ -21,6 +23,8 @@ public class ApiMod {
 	private String sha1sum;
 	@Key
 	private long size;
+	@Key
+	public List<String> files;
 
 	public long getId() {
 		return id;
@@ -77,13 +81,9 @@ public class ApiMod {
 		return String.format("http://kerbal.curseforge.com/ksp-mods/%s",
 				getId());
 	}
-
-	public String getDirectoryName() {
-		return String.format("mod-%s", getId());
-	}
 	
 	public String getInfoName() {
-		return String.format("%s.modjson", getDirectoryName());
+		return String.format("mod-%s.modjson", getId());
 	}
 
 }

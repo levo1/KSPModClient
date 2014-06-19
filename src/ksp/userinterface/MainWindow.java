@@ -181,20 +181,9 @@ public class MainWindow extends JFrame {
             }
         });
 
-
-        new SwingWebWorker<SearchResult>(new SearchUrl("mech"), SearchResult.class) {
-
-			@Override
-			protected void done() {
-				try {
-					for(ApiMod mod : get()) {
-						table.getModel().add(mod);
-					}
-				} catch (InterruptedException | ExecutionException e) {
-					e.printStackTrace();
-				}
-			}
-		}.execute();
+        for(ApiMod mod : modManager.getInstalledMods()) {
+        	table.getModel().add(mod);
+        }
 
         // description box
         JPanel rightPane = new JPanel();

@@ -54,10 +54,6 @@ public class JModList extends JTable {
 		protected String[] columns = new String[] { "Enabled", "Mod Title",
 				"Size", "Status", "ID"};
 		protected List<ApiMod> mods = new ArrayList<>();
-		
-		public List<ApiMod> getModList() {
-            return mods;
-        }
 
 		@Override
 		public Object getValueAt(int rowIndex, int columnIndex) {
@@ -67,7 +63,7 @@ public class JModList extends JTable {
 
 			switch (columnIndex) {
 			case 0:
-				return mod.enabled;
+				return checker.isModEnabled(mod);
 			case 1:
 				return mod.getTitle();
 			case 2:

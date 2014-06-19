@@ -15,15 +15,12 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -31,21 +28,21 @@ import java.util.zip.ZipInputStream;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 
-import org.apache.commons.io.FileUtils;
-
 import ksp.modmanager.api.ApiMod;
 import ksp.modmanager.api.BulkModResult;
 import ksp.modmanager.api.BulkModSearch;
 import ksp.modmanager.api.ModSearch;
+
+import org.apache.commons.io.FileUtils;
 
 import com.google.api.client.http.HttpRequest;
 import com.google.api.client.json.JsonGenerator;
 import com.google.api.client.util.escape.CharEscapers;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
-import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.google.common.collect.Collections2;
 
 public class ModManager {
@@ -58,7 +55,7 @@ public class ModManager {
 			System.getProperty("user.home") + "/.local/share/Steam/" };
 	private String kspPath = Config.get.getKspDirectory();
 	private Path enabledMods, disabledMods;
-	private Cache<Long, ApiMod> serverSideMods;
+	private LoadingCache<Long, ApiMod> serverSideMods;
 	private Map<Long, Boolean> updateAvailable = new HashMap<>();
 	private Pattern modRegex = Pattern.compile("^mod-(\\d)$",
 			Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
@@ -190,26 +187,37 @@ public class ModManager {
 	public List<ApiMod> getInstalledMods() {
 		List<ApiMod> mods = new ArrayList<>();
 
-		try (DirectoryStream<Path> directoryStream = Files
-				.newDirectoryStream(enabledMods)) {
-			for (Path path : directoryStream) {
-				ApiMod mod = getInstalledMod(path);
-				if (mod != null)
-					mods.add(mod);
-			}
+		try {
+			mods.addAll(findInstalledModsIn(enabledMods));
 		} catch (IOException ex) {
 			ex.printStackTrace();
 		}
 
-		try (DirectoryStream<Path> directoryStream = Files
-				.newDirectoryStream(disabledMods)) {
-			for (Path path : directoryStream) {
-				ApiMod mod = getInstalledMod(path);
-				if (mod != null)
-					mods.add(mod);
-			}
+		try {
+			mods.addAll(findInstalledModsIn(disabledMods));
 		} catch (IOException ex) {
 			ex.printStackTrace();
+		}
+
+		return mods;
+	}
+
+	private List<ApiMod> findInstalledModsIn(Path path) throws IOException {
+		List<ApiMod> mods = new ArrayList<>();
+		try (DirectoryStream<Path> directoryStream = Files
+				.newDirectoryStream(path)) {
+			for (Path file : directoryStream) {
+				String name = file.getFileName().toString();
+				if (name.startsWith("mod-") && name.endsWith(".modjson")) {
+					try (FileInputStream fis = new FileInputStream(
+							file.toFile())) {
+						mods.add(Start.JSON_FACTORY.createJsonParser(fis)
+								.parseAndClose(ApiMod.class));
+					} catch (IOException e) {
+						throw new RuntimeException(e);
+					}
+				}
+			}
 		}
 
 		return mods;
@@ -228,11 +236,15 @@ public class ModManager {
 								}
 							})));
 
-			serverSideMods.putAll(request.execute()
-					.parseAs(BulkModResult.class));
+			BulkModResult result = request.execute().parseAs(
+					BulkModResult.class);
+			for(ApiMod found : result.values()) {
+				System.out.println("Found: " + found.getId());
+				serverSideMods.put(found.getId(), found);
+			}
 
 			for (ApiMod local : installedMods) {
-				ApiMod remote = serverSideMods.get(local.getId(), null);
+				ApiMod remote = serverSideMods.get(local.getId());
 				if (remote == null) {
 					System.err
 							.println(String
@@ -242,8 +254,13 @@ public class ModManager {
 					continue;
 				}
 
-				updateAvailable.put(local.getId(),
-						!remote.getSha1sum().equals(local.getSha1sum()));
+				boolean update = !remote.getSha1sum()
+						.equals(local.getSha1sum());
+
+				System.out.println("Update for " + local.getId() + ": "
+						+ update);
+
+				updateAvailable.put(local.getId(), update);
 			}
 		} catch (IOException | ExecutionException ex) {
 			ex.printStackTrace();
@@ -252,12 +269,6 @@ public class ModManager {
 	}
 
 	public void installMod(ApiMod mod) throws IOException {
-		Path disabledModDir = disabledMods.resolve(mod.getDirectoryName());
-		Path enabledModDir = enabledMods.resolve(mod.getDirectoryName());
-		for (Path dir : new Path[] { enabledModDir, disabledModDir })
-			if (Files.exists(dir))
-				deleteDirectory(dir);
-
 		System.out.println("Starting download for " + mod.getTitle());
 
 		final Path tempFile = Files.createTempDirectory("ksp-mod-");
@@ -297,12 +308,12 @@ public class ModManager {
 				}
 			} while (redirect);
 
-//			MessageDigest digest;
-//			try {
-//				digest = MessageDigest.getInstance("SHA1");
-//			} catch (NoSuchAlgorithmException e) {
-//				throw new RuntimeException(e);
-//			}
+			// MessageDigest digest;
+			// try {
+			// digest = MessageDigest.getInstance("SHA1");
+			// } catch (NoSuchAlgorithmException e) {
+			// throw new RuntimeException(e);
+			// }
 			// DigestInputStream dis = new DigestInputStream(
 			// connection.getInputStream(), digest);
 
@@ -315,7 +326,8 @@ public class ModManager {
 			// byteArray2Hex(dis.getMessageDigest().digest())
 			// + " vs " + mod.getSha1sum());
 
-			final ModInstallFile root = new ModInstallFile("", null, tempFile, true);
+			final ModInstallFile root = new ModInstallFile(
+					"mod-" + mod.getId(), null, tempFile, true);
 			Files.walkFileTree(tempFile, new SimpleFileVisitor<Path>() {
 				public FileVisitResult preVisitDirectory(Path dir,
 						BasicFileAttributes attrs) throws IOException {
@@ -346,18 +358,27 @@ public class ModManager {
 			});
 
 			System.out.println(root);
-			if (installModFromTemp(mod, root)) {
-				try (FileOutputStream fos = new FileOutputStream(enabledMods
-						.resolve(mod.getInfoName()).toFile())) {
-					JsonGenerator generator = Start.JSON_FACTORY
-							.createJsonGenerator(fos, Charset.forName("UTF-8"));
-					generator.enablePrettyPrint();
-					generator.serialize(mod);
-					generator.close();
+			try {
+				boolean result = installModFromTemp(mod, root);
+				if (result) {
+					try (FileOutputStream fos = new FileOutputStream(
+							enabledMods.resolve(mod.getInfoName()).toFile())) {
+						JsonGenerator generator = Start.JSON_FACTORY
+								.createJsonGenerator(fos,
+										Charset.forName("UTF-8"));
+						generator.enablePrettyPrint();
+						generator.serialize(mod);
+						generator.close();
+					}
+				} else {
+					JOptionPane.showMessageDialog(null,
+							"Install for \"" + mod.getTitle() + "\" failed!");
 				}
-			} else {
-				JOptionPane.showMessageDialog(null,
-						"Install for \"" + mod.getTitle() + "\" failed!");
+			} catch (Exception ex) {
+				JOptionPane.showMessageDialog(
+						null,
+						"Install for \"" + mod.getTitle() + "\" failed! "
+								+ ex.getMessage());
 			}
 
 			System.out.println("Download finished");
@@ -369,63 +390,127 @@ public class ModManager {
 	}
 
 	private boolean installModFromTemp(ApiMod mod, ModInstallFile root)
-			throws IOException {
+			throws IOException, InstallFailedException {
 		ModInstallFile gamedata = root.children.get("GameData");
+		List<ModInstallFile> toInstall = new ArrayList<>();
+
 		if (gamedata == null || !gamedata.isDirectory)
 			gamedata = root.children.get("gamedata");
 
 		if (gamedata != null && gamedata.isDirectory) {
 			for (ModInstallFile file : gamedata.children.values()) {
-				installToGameData(mod, file);
+				toInstall.add(file);
 			}
-			return true;
+			return doInstall(mod, toInstall);
 		}
 
 		for (ModInstallFile dir : root.children.values()) {
 			if (dir.isDirectory && dir.name.equalsIgnoreCase("gamedata")) {
 				for (ModInstallFile file : dir.children.values()) {
-					installToGameData(mod, file);
+					toInstall.add(file);
 				}
-				return true;
+				return doInstall(mod, toInstall);
 			}
 		}
 
-		installToGameData(mod, root);
+		boolean found = false;
+
+		String[] validFiles = { "asset", "flag", "gfx", "icon", "internal",
+				"part", "planetresourcedata", "plugin", "plugindata", "prop",
+				"resource", "ship", "sound", "space", "tb_icon", "texture",
+				"texturecache" };
+
+		for (ModInstallFile dir : root.children.values()) {
+			if (dir.isDirectory) {
+				boolean match = false;
+
+				for (ModInstallFile file : dir.children.values()) {
+					String name = file.name.toLowerCase();
+					for (String validFile : validFiles)
+						if (name.equals(validFile)
+								|| name.equals(validFile + "s")) {
+							match = true;
+							break;
+						}
+					if ((name.endsWith(".cfg") && !name.equals("part.cfg"))
+							|| name.endsWith(".dll") || match) {
+						match = true;
+						break;
+					}
+				}
+
+				if (match) {
+					found = true;
+					toInstall.add(dir);
+				}
+			}
+		}
+
+		if (!found) {
+			toInstall.add(root);
+		}
+
+		return doInstall(mod, toInstall);
+	}
+
+	private boolean doInstall(ApiMod mod, List<ModInstallFile> toInstall)
+			throws IOException, InstallFailedException {
+		List<ModInstallFile> skipped = new ArrayList<>();
+		for (ModInstallFile file : toInstall) {
+			File to = enabledMods.resolve(file.name).toFile();
+
+			if (to.exists()) {
+				if (file.name.equalsIgnoreCase("squad"))
+					throw new InstallFailedException(
+							"Overwriting of Squad directory is not allowed. Sorry!",
+							mod);
+
+				String[] options = { "Overwrite", "Keep old", "Abort" };
+
+				int result = JOptionPane
+						.showOptionDialog(
+								null,
+								mod.getTitle()
+										+ " wants to overwrite the file \""
+										+ file.name
+										+ "\" in GameData. If you choose to overwrite the file, this file will be removed if this mod is installed, and the old version will NOT be restored!",
+								"Conflict", 0, JOptionPane.INFORMATION_MESSAGE,
+								null, options, null);
+
+				if (result == 1) {
+					skipped.add(file);
+				} else if (result == 2) {
+					return false;
+				}
+			}
+		}
+
+		mod.files = new ArrayList<>();
+
+		boolean installed = false;
+
+		for (ModInstallFile file : toInstall) {
+			if (skipped.contains(file))
+				continue;
+			installed = true;
+
+			File from = file.path.toFile();
+			File to = enabledMods.resolve(file.name).toFile();
+			mod.files.add(file.name);
+
+			if (file.isDirectory) {
+				FileUtils.copyDirectory(from, to);
+			} else {
+				FileUtils.copyFile(from, to);
+			}
+		}
+
+		if (installed == false) {
+			throw new InstallFailedException(
+					"Could not figure out how to install mod!", mod);
+		}
 
 		return true;
-	}
-
-	private void installToGameData(ApiMod mod, ModInstallFile file)
-			throws IOException {
-		if (file.isDirectory) {
-			FileUtils.copyDirectory(file.path.toFile(),
-					enabledMods.resolve(mod.getDirectoryName() + "-" + file.name)
-							.toFile());
-		} else {
-			FileUtils.copyFile(file.path.toFile(),
-					enabledMods.resolve(mod.getDirectoryName() + "-" + file.name)
-							.toFile());
-		}
-	}
-
-	private ApiMod getInstalledMod(Path path) {
-		String name = path.getFileName().toString();
-		Matcher matcher = modRegex.matcher(name);
-		if (!matcher.find())
-			return null;
-
-		Path modInfo = path.resolve("modinfo.json");
-		if (!Files.exists(modInfo)) {
-			System.err.println("Found " + name + " but no modinfo.json");
-			return null;
-		}
-
-		try (FileInputStream fis = new FileInputStream(modInfo.toFile())) {
-			return Start.JSON_FACTORY.createJsonParser(fis).parseAndClose(
-					ApiMod.class);
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
 	}
 
 	private void deleteDirectory(Path directory) throws IOException {
@@ -501,4 +586,12 @@ public class ModManager {
 
 	}
 
+	public static class InstallFailedException extends Exception {
+		public final ApiMod mod;
+
+		public InstallFailedException(String message, ApiMod mod) {
+			super(message);
+			this.mod = mod;
+		}
+	}
 }

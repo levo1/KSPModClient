@@ -15,6 +15,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 
 import ksp.modmanager.api.ApiMod;
+import ksp.modmanager.api.ModSearch;
 import ksp.modmanager.api.SearchResult;
 import ksp.modmanager.api.SearchUrl;
 
@@ -54,7 +55,7 @@ public class AddModPanel extends JPanel {
 				Matcher matcher = CURSE_PATTERN.matcher(mod);
 
 				if (matcher.find()) {
-					searchMod(Integer.parseInt(matcher.group(1)));
+					searchMod(Long.parseLong(matcher.group(1)));
 					System.out.println(matcher.group(1));
 				} else { // Search api
 					searchMod(mod);
@@ -64,7 +65,6 @@ public class AddModPanel extends JPanel {
 	}
 
 	private void searchMod(final String query) {
-		System.out.println("Start");
 		new SwingWebWorker<SearchResult>(new SearchUrl(query), SearchResult.class) {
 
 			@Override
@@ -83,7 +83,22 @@ public class AddModPanel extends JPanel {
 		}.execute();
 	}
 
-	private void searchMod(int id) {
+	private void searchMod(long id) {
+		new SwingWebWorker<ApiMod>(new ModSearch(id), ApiMod.class) {
 
+			@Override
+			protected void done() {
+				install.setEnabled(true);
+				try {
+					ApiMod result = get();
+					List<ApiMod> mods = modList.getModel().getModList();
+					mods.clear();
+					mods.add(result);
+					modList.getModel().fireTableDataChanged();
+				} catch (InterruptedException | ExecutionException e) {
+					e.printStackTrace();
+				}
+			}
+		}.execute();
 	}
 }
