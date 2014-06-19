@@ -1,8 +1,5 @@
 package ksp.modmanager;
 
-import javax.swing.SwingUtilities;
-import javax.swing.UIManager;
-
 import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpRequestFactory;
 import com.google.api.client.http.HttpRequestInitializer;
@@ -27,21 +24,5 @@ public class Start {
 						request.setParser(new JsonObjectParser(JSON_FACTORY));
 					}
 				});
-	}
-
-	public static void main(String[] args) throws Exception {
-		SwingUtilities.invokeLater(new Runnable() {
-
-			@Override
-			public void run() {
-				try {
-					UIManager.setLookAndFeel(UIManager
-							.getSystemLookAndFeelClassName());
-				} catch (Throwable t) {
-
-				}
-				new ModManagerGui(new ModManager()).setVisible(true);
-			}
-		});
 	}
 }
