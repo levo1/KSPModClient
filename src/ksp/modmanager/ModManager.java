@@ -16,6 +16,7 @@ import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
+import java.util.EventListener;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -59,6 +60,7 @@ public class ModManager {
 	private Map<Long, Boolean> updateAvailable = new HashMap<>();
 	private Pattern modRegex = Pattern.compile("^mod-(\\d)$",
 			Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
+	private List<ModEventListener> listeners = new ArrayList<>(); 
 
 	public ModManager() {
 		if (kspPath != null && !testKspDir(kspPath))
@@ -110,6 +112,24 @@ public class ModManager {
 				});
 
 		checkForUpdates();
+	}
+	
+	public void addListener(ModEventListener listener) {
+		this.listeners.add(listener);
+	}
+	
+	public void removeListener(ModEventListener listener) {
+		this.listeners.remove(listener);
+	}
+	
+	protected void emit(ModEvent event) {
+		for(ModEventListener listener : listeners) {
+			try {
+				listener.onModEvent(event);
+			}catch(Exception ex) {
+				ex.printStackTrace();
+			}
+		}
 	}
 
 	public String manualKspPath(boolean exitOnFail, String originalPath) {
@@ -382,6 +402,7 @@ public class ModManager {
 			}
 
 			System.out.println("Download finished");
+			emit(new ModInstallEvent());
 
 		} finally {
 			// deleteDirectory(tempFile.toAbsolutePath());
@@ -593,5 +614,17 @@ public class ModManager {
 			super(message);
 			this.mod = mod;
 		}
+	}
+	
+	public interface ModEventListener {
+		public void onModEvent(ModEvent event);
+	}
+	
+	public static abstract class ModEvent {
+		
+	}
+	
+	public class ModInstallEvent extends ModEvent {
+		
 	}
 }

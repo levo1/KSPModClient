@@ -52,7 +52,7 @@ public class JModList extends JTable {
 
 	public class ModListModel extends AbstractTableModel {
 		protected String[] columns = new String[] { "Enabled", "Mod Title",
-				"Size", "Status", "ID"};
+				"Size", "Status"};
 		protected List<ApiMod> mods = new ArrayList<>();
 
 		@Override
@@ -70,8 +70,6 @@ public class JModList extends JTable {
 				return mod.getHumanReadableSize();
 			case 3:
 				return "Update";
-			case 4:
-			    return mod.getId();
 			}
 			return null;
 		}

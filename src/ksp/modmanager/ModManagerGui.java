@@ -11,9 +11,10 @@ import javax.swing.table.DefaultTableModel;
 import ksp.modmanager.api.ApiMod;
 
 public class ModManagerGui extends JFrame {
-	private ModManager modManager = new ModManager();
+	private ModManager modManager;
 	
-	public ModManagerGui() {
+	public ModManagerGui(ModManager manager) {
+		this.modManager = manager;
 		setTitle("KSP Mod Manager");
 		setLocationRelativeTo(null);
 		setDefaultCloseOperation(DISPOSE_ON_CLOSE);

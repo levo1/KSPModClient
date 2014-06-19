@@ -40,7 +40,7 @@ public class Start {
 				} catch (Throwable t) {
 
 				}
-				new ModManagerGui().setVisible(true);
+				new ModManagerGui(new ModManager()).setVisible(true);
 			}
 		});
 	}
