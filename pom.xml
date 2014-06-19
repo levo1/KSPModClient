@@ -20,7 +20,7 @@
 				<configuration>
 					<archive>
 						<manifest>
-							<mainClass>ksp.modmanager.Start</mainClass>
+							<mainClass>ksp.userinterface.StartUI</mainClass>
 						</manifest>
 					</archive>
 					<descriptorRefs>
