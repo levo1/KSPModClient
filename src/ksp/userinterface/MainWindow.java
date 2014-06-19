@@ -96,7 +96,7 @@ public class MainWindow extends JFrame implements ModEventListener {
 			public void actionPerformed(ActionEvent e) {
 				try {
 					Process p = Runtime.getRuntime().exec(
-							Config.get.getKspDirectory() + "/KSP.exe");
+							Config.get.getKspDirectory() + "/KSP");
 				} catch (IOException e1) {
 					// TODO Auto-generated catch block
 					e1.printStackTrace();

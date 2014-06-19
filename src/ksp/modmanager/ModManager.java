@@ -16,6 +16,8 @@ import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.EventListener;
 import java.util.HashMap;
 import java.util.List;
@@ -60,7 +62,7 @@ public class ModManager {
 	private Map<Long, Boolean> updateAvailable = new HashMap<>();
 	private Pattern modRegex = Pattern.compile("^mod-(\\d)$",
 			Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
-	private List<ModEventListener> listeners = new ArrayList<>(); 
+	private List<ModEventListener> listeners = new ArrayList<>();
 
 	public ModManager() {
 		if (kspPath != null && !testKspDir(kspPath))
@@ -113,20 +115,20 @@ public class ModManager {
 
 		checkForUpdates();
 	}
-	
+
 	public void addListener(ModEventListener listener) {
 		this.listeners.add(listener);
 	}
-	
+
 	public void removeListener(ModEventListener listener) {
 		this.listeners.remove(listener);
 	}
-	
+
 	protected void emit(ModEvent event) {
-		for(ModEventListener listener : listeners) {
+		for (ModEventListener listener : listeners) {
 			try {
 				listener.onModEvent(event);
-			}catch(Exception ex) {
+			} catch (Exception ex) {
 				ex.printStackTrace();
 			}
 		}
@@ -258,7 +260,7 @@ public class ModManager {
 
 			BulkModResult result = request.execute().parseAs(
 					BulkModResult.class);
-			for(ApiMod found : result.values()) {
+			for (ApiMod found : result.values()) {
 				System.out.println("Found: " + found.getId());
 				serverSideMods.put(found.getId(), found);
 			}
@@ -395,6 +397,7 @@ public class ModManager {
 							"Install for \"" + mod.getTitle() + "\" failed!");
 				}
 			} catch (Exception ex) {
+				ex.printStackTrace();
 				JOptionPane.showMessageDialog(
 						null,
 						"Install for \"" + mod.getTitle() + "\" failed! "
@@ -474,61 +477,81 @@ public class ModManager {
 		return doInstall(mod, toInstall);
 	}
 
-	private boolean doInstall(ApiMod mod, List<ModInstallFile> toInstall)
+	private boolean checkOverWrite(ApiMod mod, ModInstallFile file)
+			throws InstallFailedException {
+		String[] options = { "Overwrite", "Keep old", "Abort" };
+
+		int result = JOptionPane
+				.showOptionDialog(
+						null,
+						mod.getTitle()
+								+ " wants to overwrite the file \""
+								+ file.name
+								+ "\" in GameData. If you choose to overwrite the file, this file will be removed if this mod is installed, and the old version will NOT be restored!",
+						"Conflict", 0, JOptionPane.INFORMATION_MESSAGE, null,
+						options, null);
+
+		if (result == 0) {
+			return true;
+		} else if (result == 1) {
+			return false;
+		} else {
+			throw new InstallFailedException(
+					"User chose to abort installation at " + file.name, mod);
+		}
+	}
+
+	private boolean doInstall(ApiMod mod, List<ModInstallFile> roots)
 			throws IOException, InstallFailedException {
-		List<ModInstallFile> skipped = new ArrayList<>();
-		for (ModInstallFile file : toInstall) {
-			File to = enabledMods.resolve(file.name).toFile();
+		List<ModInstallFile> actualFiles = new ArrayList<>();
+		for (ModInstallFile file : roots) {
+			if (!file.isDirectory) {
+				File to = enabledMods.resolve(file.name).toFile();
 
-			if (to.exists()) {
-				if (file.name.equalsIgnoreCase("squad"))
-					throw new InstallFailedException(
-							"Overwriting of Squad directory is not allowed. Sorry!",
-							mod);
-
-				String[] options = { "Overwrite", "Keep old", "Abort" };
-
-				int result = JOptionPane
-						.showOptionDialog(
-								null,
-								mod.getTitle()
-										+ " wants to overwrite the file \""
-										+ file.name
-										+ "\" in GameData. If you choose to overwrite the file, this file will be removed if this mod is installed, and the old version will NOT be restored!",
-								"Conflict", 0, JOptionPane.INFORMATION_MESSAGE,
-								null, options, null);
-
-				if (result == 1) {
-					skipped.add(file);
-				} else if (result == 2) {
-					return false;
+				if (!to.exists() || checkOverWrite(mod, file)) {
+					actualFiles.add(file);
+				}
+			} else {
+				for (ModInstallFile child : file.getContainedFiles()) {
+					System.out.println("Got child: " + child + " "
+							+ child.isDirectory);
+					File to = enabledMods.resolve(child.name).toFile();
+					if (!to.exists() || checkOverWrite(mod, child)) {
+						actualFiles.add(child);
+					}
 				}
 			}
 		}
 
-		mod.files = new ArrayList<>();
-
-		boolean installed = false;
-
-		for (ModInstallFile file : toInstall) {
-			if (skipped.contains(file))
-				continue;
-			installed = true;
-
-			File from = file.path.toFile();
-			File to = enabledMods.resolve(file.name).toFile();
-			mod.files.add(file.name);
-
-			if (file.isDirectory) {
-				FileUtils.copyDirectory(from, to);
-			} else {
-				FileUtils.copyFile(from, to);
-			}
-		}
-
-		if (installed == false) {
+		if (actualFiles.size() == 0) {
 			throw new InstallFailedException(
 					"Could not figure out how to install mod!", mod);
+		}
+
+		mod.files = new ArrayList<>();
+
+		for (ModInstallFile file : actualFiles) {
+			File from = file.path.toFile();
+			List<String> parts = new ArrayList<>();
+			ModInstallFile parent = file;
+			while (parent != null) {
+				parts.add(parent.name);
+				if(roots.contains(parent))
+					break;
+				parent = parent.parent;
+			}
+			Path to = enabledMods;
+			for (int i = parts.size() - 1; i >= 0; i--) {
+				to = to.resolve(parts.get(i));
+			}
+			File toFile = to.toFile();
+
+			mod.files.add(enabledMods.relativize(to).toString());
+
+			toFile.getParentFile().mkdirs();
+			System.out.println("Trying " + from.getAbsolutePath() + " to "
+					+ toFile.getAbsolutePath());
+			FileUtils.copyFile(from, toFile);
 		}
 
 		return true;
@@ -615,16 +638,16 @@ public class ModManager {
 			this.mod = mod;
 		}
 	}
-	
+
 	public interface ModEventListener {
 		public void onModEvent(ModEvent event);
 	}
-	
+
 	public static abstract class ModEvent {
-		
+
 	}
-	
+
 	public class ModInstallEvent extends ModEvent {
-		
+
 	}
 }
