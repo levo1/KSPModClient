@@ -2,8 +2,15 @@ package ksp.modmanager;
 
 import java.awt.BorderLayout;
 import java.awt.Dimension;
+import java.awt.HeadlessException;
+import java.awt.Toolkit;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
+import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.regex.Matcher;
@@ -27,12 +34,12 @@ public class AddModPanel extends JPanel {
 							| Pattern.MULTILINE);
 
 	JTextField modname = new JTextField();
-	JButton install = new JButton("Search");
+	JButton search = new JButton("Search");
 	JModList modList;
 
 	public AddModPanel(ModManager checker) {
 		modList = new JModInstallList(checker);
-		
+
 		setLayout(new BorderLayout(5, 5));
 		JPanel topPanel = new JPanel();
 		topPanel.setLayout(new BorderLayout(5, 5));
@@ -42,34 +49,56 @@ public class AddModPanel extends JPanel {
 		modname.setPreferredSize(size);
 
 		topPanel.add(modname, BorderLayout.CENTER);
-		topPanel.add(install, BorderLayout.EAST);
+		topPanel.add(search, BorderLayout.EAST);
 
 		add(topPanel, BorderLayout.NORTH);
 		add(new JScrollPane(modList), BorderLayout.CENTER);
 
-		install.addActionListener(new ActionListener() {
+		modname.addKeyListener(new KeyAdapter() {
+			public void keyReleased(KeyEvent e) {
+				if (e.getKeyCode() == KeyEvent.VK_ENTER) {
+					if (search.isEnabled())
+						search.doClick();
+				}
+			}
+		});
+
+		search.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				install.setEnabled(false);
+				search.setEnabled(false);
 				String mod = modname.getText();
 				Matcher matcher = CURSE_PATTERN.matcher(mod);
 
 				if (matcher.find()) {
 					searchMod(Long.parseLong(matcher.group(1)));
-					System.out.println(matcher.group(1));
 				} else { // Search api
 					searchMod(mod);
 				}
 			}
 		});
+
+		try {
+			String clipboard = (String) Toolkit.getDefaultToolkit()
+					.getSystemClipboard().getData(DataFlavor.stringFlavor);
+			Matcher matcher = CURSE_PATTERN.matcher(clipboard);
+			if (matcher.find()) {
+				modname.setText(clipboard);
+				search.doClick();
+			}
+		} catch (HeadlessException | UnsupportedFlavorException | IOException e1) {
+			e1.printStackTrace();
+		}
+
 	}
 
 	private void searchMod(final String query) {
-		new SwingWebWorker<SearchResult>(new SearchUrl(query), SearchResult.class) {
+		new SwingWebWorker<SearchResult>(new SearchUrl(query),
+				SearchResult.class) {
 
 			@Override
 			protected void done() {
-				install.setEnabled(true);
+				search.setEnabled(true);
 				try {
 					SearchResult result = get();
 					List<ApiMod> mods = modList.getModel().getModList();
@@ -88,7 +117,7 @@ public class AddModPanel extends JPanel {
 
 			@Override
 			protected void done() {
-				install.setEnabled(true);
+				search.setEnabled(true);
 				try {
 					ApiMod result = get();
 					List<ApiMod> mods = modList.getModel().getModList();
