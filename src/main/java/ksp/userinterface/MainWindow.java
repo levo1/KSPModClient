@@ -8,17 +8,24 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.beans.PropertyChangeListener;
 import java.io.IOException;
 import java.util.List;
 
+import javax.swing.Action;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JMenuItem;
 import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
+import javax.swing.JTable;
 import javax.swing.JTextArea;
 import javax.swing.JToolBar;
 import javax.swing.ListSelectionModel;
@@ -171,6 +178,31 @@ public class MainWindow extends JFrame implements ModEventListener {
 					}
 				});
 
+		table.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseReleased(MouseEvent e) {
+				int r = table.rowAtPoint(e.getPoint());
+				if (r >= 0 && r < table.getRowCount()) {
+					table.setRowSelectionInterval(r, r);
+				} else {
+					table.clearSelection();
+				}
+
+				int rowindex = table.getSelectedRow();
+				if (rowindex < 0)
+					return;
+
+				ApiMod mod = table.getModel().getModList()
+						.get(table.getRowSorter().convertRowIndexToModel(r));
+
+				if (e.isPopupTrigger() && e.getComponent() instanceof JTable) {
+					JPopupMenu popup = createContextMenuFor(mod);
+					popup.show(e.getComponent(), e.getX(), e.getY());
+				}
+
+			}
+		});
+
 		doRefreshModList();
 
 		// description box
@@ -220,6 +252,24 @@ public class MainWindow extends JFrame implements ModEventListener {
 		add(pane, BorderLayout.CENTER);
 	}
 
+	private JPopupMenu createContextMenuFor(final ApiMod mod) {
+		JPopupMenu menu = new JPopupMenu();
+		JMenuItem uninstall = new JMenuItem("Uninstall");
+		uninstall.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				try {
+					modManager.uninstallMod(mod);
+				} catch (IOException e1) {
+					e1.printStackTrace();
+				}
+			}
+		});
+		
+		menu.add(uninstall);
+		return menu;
+	}
+
 	@Override
 	public void onModEvent(ModEvent event) {
 		doRefreshModList();
@@ -228,7 +278,11 @@ public class MainWindow extends JFrame implements ModEventListener {
 	private void doRefreshModList() {
 		List<ApiMod> mods = table.getModel().getModList();
 		mods.clear();
-		mods.addAll(modManager.getInstalledMods());
+		try {
+			mods.addAll(modManager.getInstalledMods());
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
 		table.getModel().fireTableDataChanged();
 	}
 }

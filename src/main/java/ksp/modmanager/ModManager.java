@@ -15,10 +15,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.security.DigestInputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.EventListener;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,10 +36,9 @@ import ksp.modmanager.api.BulkModResult;
 import ksp.modmanager.api.BulkModSearch;
 import ksp.modmanager.api.ModSearch;
 
-import org.apache.commons.io.FileUtils;
-
 import com.google.api.client.http.HttpRequest;
 import com.google.api.client.json.JsonGenerator;
+import com.google.api.client.util.IOUtils;
 import com.google.api.client.util.escape.CharEscapers;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -57,7 +56,7 @@ public class ModManager {
 			System.getProperty("user.home") + "/Steam/",
 			System.getProperty("user.home") + "/.local/share/Steam/" };
 	private String kspPath = Config.get.getKspDirectory();
-	private Path enabledMods, disabledMods;
+	private Path gameData;
 	private LoadingCache<Long, ApiMod> serverSideMods;
 	private Map<Long, Boolean> updateAvailable = new HashMap<>();
 	private Pattern modRegex = Pattern.compile("^mod-(\\d)$",
@@ -92,15 +91,7 @@ public class ModManager {
 			Config.get.setKspDirectory(kspPath).save();
 		}
 
-		enabledMods = Paths.get(kspPath, "GameData");
-		disabledMods = Paths.get(kspPath, "GameData-disabled");
-
-		if (!Files.exists(disabledMods))
-			try {
-				Files.createDirectory(disabledMods);
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
+		gameData = Paths.get(kspPath, "GameData");
 
 		serverSideMods = CacheBuilder.newBuilder().concurrencyLevel(2)
 				.expireAfterWrite(30, TimeUnit.MINUTES)
@@ -134,66 +125,18 @@ public class ModManager {
 		}
 	}
 
-	public String manualKspPath(boolean exitOnFail, String originalPath) {
-		String selectedPath = null;
-		String kspPathTemp = null;
-		JFileChooser fileChooser = new JFileChooser(originalPath);
-		fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-		int returnVal = fileChooser.showOpenDialog(null);
-		if (returnVal != JFileChooser.APPROVE_OPTION && exitOnFail == true) {
-			System.exit(1);
-		} else if (returnVal != JFileChooser.APPROVE_OPTION) {
-			return originalPath;
-		}
-
-		selectedPath = fileChooser.getSelectedFile().getAbsolutePath();
-		if (testKspDir(selectedPath))
-			kspPathTemp = selectedPath;
-		else if (testKspDir(selectedPath + "/../"))
-			kspPathTemp = selectedPath + "/../";
-
-		if (kspPathTemp == null) {
-			int option = JOptionPane
-					.showConfirmDialog(
-							null,
-							"The selected directory \""
-									+ selectedPath
-									+ "\" does not appear to be a valid Kerbal Space Program installation directory. Do you want to try again?",
-							null, JOptionPane.YES_NO_OPTION);
-			if (option != JOptionPane.YES_OPTION && exitOnFail == true) {
-				System.exit(1);
-			} else if (option == JOptionPane.YES_OPTION) {
-				this.manualKspPath(exitOnFail, originalPath);
-			} else {
-				kspPathTemp = originalPath;
-			}
-		}
-		return kspPathTemp;
-	}
-
-	private boolean testKspDir(String path) {
-		if (!Files.exists(Paths.get(path)))
-			return false;
-
-		if (!Files.exists(Paths.get(path, "GameData")))
-			return false;
-
-		return true;
-	}
-
 	public boolean isModInstalled(ApiMod mod) {
 		// System.out.println("Hitting FS"); //TODO cache or something?
-		if (Files.exists(enabledMods.resolve(mod.getInfoName())))
+		if (Files.exists(Config.cachedir.toPath().resolve(mod.getInfoName())))
 			return true;
-
-		if (Files.exists(disabledMods.resolve(mod.getInfoName())))
-			return true;
+		
+		System.out.println(Config.cachedir.toPath().resolve(mod.getInfoName()));
 
 		return false;
 	}
 
 	public boolean isModEnabled(ApiMod mod) {
-		if (Files.exists(enabledMods.resolve(mod.getInfoName())))
+		if (Files.exists(gameData.resolve(mod.getInfoName())))
 			return true;
 
 		return false;
@@ -206,28 +149,11 @@ public class ModManager {
 		return update;
 	}
 
-	public List<ApiMod> getInstalledMods() {
+	public List<ApiMod> getInstalledMods() throws IOException {
 		List<ApiMod> mods = new ArrayList<>();
 
-		try {
-			mods.addAll(findInstalledModsIn(enabledMods));
-		} catch (IOException ex) {
-			ex.printStackTrace();
-		}
-
-		try {
-			mods.addAll(findInstalledModsIn(disabledMods));
-		} catch (IOException ex) {
-			ex.printStackTrace();
-		}
-
-		return mods;
-	}
-
-	private List<ApiMod> findInstalledModsIn(Path path) throws IOException {
-		List<ApiMod> mods = new ArrayList<>();
 		try (DirectoryStream<Path> directoryStream = Files
-				.newDirectoryStream(path)) {
+				.newDirectoryStream(Config.cachedir.toPath())) {
 			for (Path file : directoryStream) {
 				String name = file.getFileName().toString();
 				if (name.startsWith("mod-") && name.endsWith(".modjson")) {
@@ -235,8 +161,6 @@ public class ModManager {
 							file.toFile())) {
 						mods.add(Start.JSON_FACTORY.createJsonParser(fis)
 								.parseAndClose(ApiMod.class));
-					} catch (IOException e) {
-						throw new RuntimeException(e);
 					}
 				}
 			}
@@ -290,63 +214,129 @@ public class ModManager {
 
 	}
 
+	protected File getConfigFileForMod(ApiMod mod) {
+		return gameData.resolve(mod.getInfoName()).toFile();
+	}
+
 	public void installMod(ApiMod mod) throws IOException {
+		downloadMod(mod);
+		enableMod(mod);
+	}
+
+	public void uninstallMod(ApiMod mod) throws IOException {
+		disableMod(mod);
+		File cacheFile = new File(Config.cachedir, "mod-" + mod.getId()
+				+ ".zip");
+		File infoFile = new File(Config.cachedir, mod.getInfoName());
+		cacheFile.delete();
+		infoFile.delete();
+		
+		emit(new ModUninstallEvent(mod));
+	}
+
+	public void disableMod(ApiMod mod) throws IOException {
+		File configFile = getConfigFileForMod(mod);
+		if (configFile.exists()) {
+			try (FileInputStream fis = new FileInputStream(configFile)) {
+				ApiMod modConfig = Start.JSON_FACTORY.createJsonParser(fis)
+						.parseAndClose(ApiMod.class);
+
+				for (String filePath : modConfig.files) {
+					File file = new File(gameData.toFile(), filePath);
+					while(file.delete()) {
+						file = file.getParentFile();
+					}
+				}
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
+
+			configFile.delete();
+		}
+		
+		emit(new ModDisableEvent(mod));
+	}
+
+	private File downloadMod(ApiMod mod) throws IOException {
 		System.out.println("Starting download for " + mod.getTitle());
 
+		String url = mod.getDownloadUrl();
+		HttpURLConnection connection;
+		boolean redirect = false;
+
+		do {
+			URL website = new URL(url);
+			System.out.println("Accessing " + url);
+			connection = (HttpURLConnection) website.openConnection();
+			connection.setInstanceFollowRedirects(false);
+			String location = connection.getHeaderField("Location");
+			System.out.println("Header; " + location + " / "
+					+ connection.getResponseCode());
+			if (location != null) {
+				connection.disconnect();
+				url = location.replaceAll("(?i)/(\\d+)\\\\(\\d+)/", "/$1/$2/");
+
+				if (!url.startsWith("http"))
+					url = "http:" + url;
+
+				URL u = new URL(url);
+				String[] parts = u.getPath().split("/");
+				for (int i = 0; i < parts.length; i++) {
+					parts[i] = CharEscapers.escapeUriPath(parts[i]);
+				}
+
+				url = u.getProtocol() + "://" + u.getHost() + "/"
+						+ Joiner.on('/').join(parts)
+						+ (u.getQuery() != null ? "?" + u.getQuery() : "");
+				redirect = true;
+			} else {
+				redirect = false;
+			}
+		} while (redirect);
+
+		MessageDigest digest;
+		try {
+			digest = MessageDigest.getInstance("SHA1");
+		} catch (NoSuchAlgorithmException e) {
+			throw new RuntimeException(e);
+		}
+
+		File cacheFile = new File(Config.cachedir, "mod-" + mod.getId()
+				+ ".zip");
+		File cacheConfigFile = new File(Config.cachedir, mod.getInfoName());
+
+		try (DigestInputStream dis = new DigestInputStream(
+				connection.getInputStream(), digest);
+				FileOutputStream fos = new FileOutputStream(cacheFile)) {
+			IOUtils.copy(dis, fos);
+		}
+
+		try (FileOutputStream fos = new FileOutputStream(cacheConfigFile)) {
+			JsonGenerator generator = Start.JSON_FACTORY.createJsonGenerator(
+					fos, Charset.forName("UTF-8"));
+			generator.enablePrettyPrint();
+			generator.serialize(mod);
+			generator.close();
+		}
+
+		System.out.println("Download finished "
+				+ byteArray2Hex(digest.digest()) + " vs " + mod.getSha1sum());
+		return cacheFile;
+	}
+
+	public void enableMod(ApiMod mod) throws IOException {
 		final Path tempFile = Files.createTempDirectory("ksp-mod-");
 		try {
-			String url = mod.getDownloadUrl();
-			HttpURLConnection connection;
-			boolean redirect = false;
+			File cacheFile = new File(Config.datadir, "cache/mod-"
+					+ mod.getId() + ".zip");
 
-			do {
-				URL website = new URL(url);
-				System.out.println("Accessing " + url);
-				connection = (HttpURLConnection) website.openConnection();
-				connection.setInstanceFollowRedirects(false);
-				String location = connection.getHeaderField("Location");
-				System.out.println("Header; " + location + " / "
-						+ connection.getResponseCode());
-				if (location != null) {
-					connection.disconnect();
-					url = location.replaceAll("(?i)/(\\d+)\\\\(\\d+)/",
-							"/$1/$2/");
+			if (!cacheFile.exists())
+				cacheFile = downloadMod(mod);
 
-					if (!url.startsWith("http"))
-						url = "http:" + url;
-
-					URL u = new URL(url);
-					String[] parts = u.getPath().split("/");
-					for (int i = 0; i < parts.length; i++) {
-						parts[i] = CharEscapers.escapeUriPath(parts[i]);
-					}
-
-					url = u.getProtocol() + "://" + u.getHost() + "/"
-							+ Joiner.on('/').join(parts)
-							+ (u.getQuery() != null ? "?" + u.getQuery() : "");
-					redirect = true;
-				} else {
-					redirect = false;
-				}
-			} while (redirect);
-
-			// MessageDigest digest;
-			// try {
-			// digest = MessageDigest.getInstance("SHA1");
-			// } catch (NoSuchAlgorithmException e) {
-			// throw new RuntimeException(e);
-			// }
-			// DigestInputStream dis = new DigestInputStream(
-			// connection.getInputStream(), digest);
-
-			ZipInputStream is = new ZipInputStream(connection.getInputStream());
-
-			// System.out.println(tempFile.toString());
-			unzip(is, tempFile.toFile());
-
-			// System.out.println("SHA-1: " +
-			// byteArray2Hex(dis.getMessageDigest().digest())
-			// + " vs " + mod.getSha1sum());
+			try (ZipInputStream is = new ZipInputStream(new FileInputStream(
+					cacheFile))) {
+				unzip(is, tempFile.toFile());
+			}
 
 			final ModInstallFile root = new ModInstallFile(
 					"mod-" + mod.getId(), null, tempFile, true);
@@ -379,12 +369,17 @@ public class ModManager {
 				}
 			});
 
+			File modConfigFile = getConfigFileForMod(mod);
+			if (modConfigFile.exists()) {
+				disableMod(mod);
+			}
+
 			System.out.println(root);
 			try {
 				boolean result = installModFromTemp(mod, root);
 				if (result) {
 					try (FileOutputStream fos = new FileOutputStream(
-							enabledMods.resolve(mod.getInfoName()).toFile())) {
+							modConfigFile)) {
 						JsonGenerator generator = Start.JSON_FACTORY
 								.createJsonGenerator(fos,
 										Charset.forName("UTF-8"));
@@ -404,13 +399,10 @@ public class ModManager {
 								+ ex.getMessage());
 			}
 
-			System.out.println("Download finished");
-			emit(new ModInstallEvent());
-
+			emit(new ModEnableEvent(mod));
 		} finally {
-			// deleteDirectory(tempFile.toAbsolutePath());
+			deleteDirectory(tempFile.toAbsolutePath());
 		}
-
 	}
 
 	private boolean installModFromTemp(ApiMod mod, ModInstallFile root)
@@ -477,7 +469,7 @@ public class ModManager {
 		return doInstall(mod, toInstall);
 	}
 
-	private boolean checkOverWrite(ApiMod mod, ModInstallFile file)
+	private boolean checkOverwrite(ApiMod mod, ModInstallFile file)
 			throws InstallFailedException {
 		String[] options = { "Overwrite", "Keep old", "Abort" };
 
@@ -506,17 +498,17 @@ public class ModManager {
 		List<ModInstallFile> actualFiles = new ArrayList<>();
 		for (ModInstallFile file : roots) {
 			if (!file.isDirectory) {
-				File to = enabledMods.resolve(file.name).toFile();
+				File to = gameData.resolve(file.name).toFile();
 
-				if (!to.exists() || checkOverWrite(mod, file)) {
+				if (!to.exists() || checkOverwrite(mod, file)) {
 					actualFiles.add(file);
 				}
 			} else {
 				for (ModInstallFile child : file.getContainedFiles()) {
 					System.out.println("Got child: " + child + " "
 							+ child.isDirectory);
-					File to = enabledMods.resolve(child.name).toFile();
-					if (!to.exists() || checkOverWrite(mod, child)) {
+					File to = gameData.resolve(child.name).toFile();
+					if (!to.exists() || checkOverwrite(mod, child)) {
 						actualFiles.add(child);
 					}
 				}
@@ -536,22 +528,22 @@ public class ModManager {
 			ModInstallFile parent = file;
 			while (parent != null) {
 				parts.add(parent.name);
-				if(roots.contains(parent))
+				if (roots.contains(parent))
 					break;
 				parent = parent.parent;
 			}
-			Path to = enabledMods;
+			Path to = gameData;
 			for (int i = parts.size() - 1; i >= 0; i--) {
 				to = to.resolve(parts.get(i));
 			}
 			File toFile = to.toFile();
 
-			mod.files.add(enabledMods.relativize(to).toString());
+			mod.files.add(gameData.relativize(to).toString());
 
 			toFile.getParentFile().mkdirs();
 			System.out.println("Trying " + from.getAbsolutePath() + " to "
 					+ toFile.getAbsolutePath());
-			FileUtils.copyFile(from, toFile);
+			from.renameTo(toFile);
 		}
 
 		return true;
@@ -621,6 +613,53 @@ public class ModManager {
 		}
 	}
 
+	public String manualKspPath(boolean exitOnFail, String originalPath) {
+		String selectedPath = null;
+		String kspPathTemp = null;
+		JFileChooser fileChooser = new JFileChooser(originalPath);
+		fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+		int returnVal = fileChooser.showOpenDialog(null);
+		if (returnVal != JFileChooser.APPROVE_OPTION && exitOnFail == true) {
+			System.exit(1);
+		} else if (returnVal != JFileChooser.APPROVE_OPTION) {
+			return originalPath;
+		}
+
+		selectedPath = fileChooser.getSelectedFile().getAbsolutePath();
+		if (testKspDir(selectedPath))
+			kspPathTemp = selectedPath;
+		else if (testKspDir(selectedPath + "/../"))
+			kspPathTemp = selectedPath + "/../";
+
+		if (kspPathTemp == null) {
+			int option = JOptionPane
+					.showConfirmDialog(
+							null,
+							"The selected directory \""
+									+ selectedPath
+									+ "\" does not appear to be a valid Kerbal Space Program installation directory. Do you want to try again?",
+							null, JOptionPane.YES_NO_OPTION);
+			if (option != JOptionPane.YES_OPTION && exitOnFail == true) {
+				System.exit(1);
+			} else if (option == JOptionPane.YES_OPTION) {
+				this.manualKspPath(exitOnFail, originalPath);
+			} else {
+				kspPathTemp = originalPath;
+			}
+		}
+		return kspPathTemp;
+	}
+
+	private boolean testKspDir(String path) {
+		if (!Files.exists(Paths.get(path)))
+			return false;
+
+		if (!Files.exists(Paths.get(path, "GameData")))
+			return false;
+
+		return true;
+	}
+
 	private static String byteArray2Hex(byte[] b) {
 		String result = "";
 		for (int i = 0; i < b.length; i++) {
@@ -647,7 +686,24 @@ public class ModManager {
 
 	}
 
-	public class ModInstallEvent extends ModEvent {
-
+	public class ModEnableEvent extends ModEvent {
+		public final ApiMod mod;
+		public ModEnableEvent(ApiMod mod) {
+			this.mod = mod;
+		}
+	}
+	
+	public class ModDisableEvent extends ModEvent {
+		public final ApiMod mod;
+		public ModDisableEvent(ApiMod mod) {
+			this.mod = mod;
+		}
+	}
+	
+	public class ModUninstallEvent extends ModEvent {
+		public final ApiMod mod;
+		public ModUninstallEvent(ApiMod mod) {
+			this.mod = mod;
+		}
 	}
 }

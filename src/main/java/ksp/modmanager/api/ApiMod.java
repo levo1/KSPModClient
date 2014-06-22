@@ -5,7 +5,6 @@ import java.util.List;
 import com.google.api.client.util.Key;
 
 public class ApiMod {
-	public boolean enabled = false;
 	public boolean installing = false;
 	@Key
 	private long id;

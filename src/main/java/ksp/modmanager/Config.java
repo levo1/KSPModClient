@@ -11,13 +11,17 @@ import com.google.api.client.util.Key;
 
 public class Config {
 	public static final Config get;
-	private static final File datadir = new File(
-			System.getProperty("user.home") + "/.ksp-mm/");
+	public static final File datadir = new File(System.getProperty("user.home")
+			+ "/.ksp-mm/");
 	private static final File configFile = new File(datadir, "config.json");
+	public static final File cachedir = new File(datadir, "cache");
 
 	static {
 		if (!datadir.exists())
 			datadir.mkdir();
+
+		if (!cachedir.exists())
+			cachedir.mkdir();
 
 		if (configFile.exists()) {
 			try (FileInputStream fis = new FileInputStream(configFile)) {

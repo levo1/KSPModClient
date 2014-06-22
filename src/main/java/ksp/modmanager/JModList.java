@@ -2,6 +2,7 @@ package ksp.modmanager;
 
 import java.awt.Component;
 import java.awt.event.ActionEvent;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -52,7 +53,7 @@ public class JModList extends JTable {
 
 	public class ModListModel extends AbstractTableModel {
 		protected String[] columns = new String[] { "Enabled", "Mod Title",
-				"Size", "Status"};
+				"Size", "Status" };
 		protected List<ApiMod> mods = new ArrayList<>();
 
 		@Override
@@ -79,7 +80,7 @@ public class JModList extends JTable {
 			this.mods.add(mod);
 			fireTableRowsInserted(rowIndex, rowIndex);
 		}
-		
+
 		public ApiMod get(int row) {
 			return this.mods.get(row);
 		}
@@ -113,7 +114,16 @@ public class JModList extends JTable {
 			if (column != 0 || row < 0 || row >= getRowCount())
 				return;
 
-			mods.get(row).enabled = (Boolean) value;
+			try {
+				ApiMod mod = mods.get(row);
+				if (checker.isModEnabled(mod)) {
+					checker.disableMod(mod);
+				} else {
+					checker.enableMod(mod);
+				}
+			} catch (IOException ex) {
+				ex.printStackTrace();
+			}
 		}
 
 		@Override
@@ -126,9 +136,9 @@ public class JModList extends JTable {
 			return columns.length;
 		}
 
-        public List<ApiMod> getModList() {
-            return mods;
-        }
+		public List<ApiMod> getModList() {
+			return mods;
+		}
 	}
 
 	public class ModButtonColumn extends ButtonColumn {
