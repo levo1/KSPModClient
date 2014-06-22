@@ -129,7 +129,7 @@ public class ModManager {
 		// System.out.println("Hitting FS"); //TODO cache or something?
 		if (Files.exists(Config.cachedir.toPath().resolve(mod.getInfoName())))
 			return true;
-		
+
 		System.out.println(Config.cachedir.toPath().resolve(mod.getInfoName()));
 
 		return false;
@@ -230,7 +230,7 @@ public class ModManager {
 		File infoFile = new File(Config.cachedir, mod.getInfoName());
 		cacheFile.delete();
 		infoFile.delete();
-		
+
 		emit(new ModUninstallEvent(mod));
 	}
 
@@ -243,7 +243,7 @@ public class ModManager {
 
 				for (String filePath : modConfig.files) {
 					File file = new File(gameData.toFile(), filePath);
-					while(file.delete()) {
+					while (file.delete()) {
 						file = file.getParentFile();
 					}
 				}
@@ -253,7 +253,7 @@ public class ModManager {
 
 			configFile.delete();
 		}
-		
+
 		emit(new ModDisableEvent(mod));
 	}
 
@@ -505,8 +505,6 @@ public class ModManager {
 				}
 			} else {
 				for (ModInstallFile child : file.getContainedFiles()) {
-					System.out.println("Got child: " + child + " "
-							+ child.isDirectory);
 					File to = gameData.resolve(child.name).toFile();
 					if (!to.exists() || checkOverwrite(mod, child)) {
 						actualFiles.add(child);
@@ -541,8 +539,6 @@ public class ModManager {
 			mod.files.add(gameData.relativize(to).toString());
 
 			toFile.getParentFile().mkdirs();
-			System.out.println("Trying " + from.getAbsolutePath() + " to "
-					+ toFile.getAbsolutePath());
 			from.renameTo(toFile);
 		}
 
@@ -688,20 +684,23 @@ public class ModManager {
 
 	public class ModEnableEvent extends ModEvent {
 		public final ApiMod mod;
+
 		public ModEnableEvent(ApiMod mod) {
 			this.mod = mod;
 		}
 	}
-	
+
 	public class ModDisableEvent extends ModEvent {
 		public final ApiMod mod;
+
 		public ModDisableEvent(ApiMod mod) {
 			this.mod = mod;
 		}
 	}
-	
+
 	public class ModUninstallEvent extends ModEvent {
 		public final ApiMod mod;
+
 		public ModUninstallEvent(ApiMod mod) {
 			this.mod = mod;
 		}

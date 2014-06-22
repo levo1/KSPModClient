@@ -1,6 +1,7 @@
 package ksp.userinterface;
 
 import java.awt.BorderLayout;
+import java.awt.Desktop;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
@@ -10,13 +11,12 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.beans.PropertyChangeListener;
+import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
 
-import javax.swing.Action;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
@@ -24,6 +24,7 @@ import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
@@ -92,11 +93,33 @@ public class MainWindow extends JFrame implements ModEventListener {
 
 		launchButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
+				// try {
+				// Process p = Runtime.getRuntime().exec(
+				// Config.get.getKspDirectory() + "/KSP");
+				// } catch (IOException e1) {
+				// // TODO Auto-generated catch block
+				// e1.printStackTrace();
+				// }
+
 				try {
-					Process p = Runtime.getRuntime().exec(
-							Config.get.getKspDirectory() + "/KSP");
+					File kspBinary = new File(Config.get.getKspDirectory(),
+							"KSP");
+					File kspWinBinary = new File(Config.get.getKspDirectory(),
+							"KSP.exe");
+					File kspMacBinary = new File(Config.get.getKspDirectory(),
+							"KSP.app");
+					if (kspMacBinary.exists())
+						kspBinary = kspMacBinary;
+					else if (kspWinBinary.exists())
+						kspBinary = kspWinBinary;
+					if (kspBinary.exists())
+						Desktop.getDesktop().open(kspBinary);
+					else
+						JOptionPane
+								.showMessageDialog(
+										MainWindow.this,
+										"Could not launch KSP! Please report this on the issue tracker, and be sure to mention your operating system and KSP directory layout");
 				} catch (IOException e1) {
-					// TODO Auto-generated catch block
 					e1.printStackTrace();
 				}
 			}
