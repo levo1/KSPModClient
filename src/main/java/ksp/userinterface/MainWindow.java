@@ -12,6 +12,8 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.beans.PropertyChangeListener;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.List;
 
 import javax.swing.Action;
@@ -254,6 +256,23 @@ public class MainWindow extends JFrame implements ModEventListener {
 
 	private JPopupMenu createContextMenuFor(final ApiMod mod) {
 		JPopupMenu menu = new JPopupMenu();
+
+		JMenuItem visitSite = new JMenuItem("View on Curseforge");
+		visitSite.addActionListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				try {
+					java.awt.Desktop.getDesktop().browse(
+							new URI(mod.getPageUrl()));
+				} catch (IOException | URISyntaxException e1) {
+					e1.printStackTrace();
+				}
+			}
+		});
+
+		menu.add(visitSite);
+
 		JMenuItem uninstall = new JMenuItem("Uninstall");
 		uninstall.addActionListener(new ActionListener() {
 			@Override
@@ -265,7 +284,7 @@ public class MainWindow extends JFrame implements ModEventListener {
 				}
 			}
 		});
-		
+
 		menu.add(uninstall);
 		return menu;
 	}
