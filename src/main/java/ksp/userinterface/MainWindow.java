@@ -227,7 +227,11 @@ public class MainWindow extends JFrame implements ModEventListener {
 					JPopupMenu popup = createContextMenuFor(mod);
 					popup.show(e.getComponent(), e.getX(), e.getY());
 				}
-
+			}
+			
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				mouseReleased(e);
 			}
 		});
 
