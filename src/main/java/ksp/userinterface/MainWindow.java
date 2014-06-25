@@ -217,10 +217,13 @@ public class MainWindow extends JFrame implements ModEventListener {
 				if (rowindex < 0)
 					return;
 
-				ApiMod mod = table.getModel().getModList()
-						.get(table.getRowSorter().convertRowIndexToModel(r));
+				if ((e.isPopupTrigger() || e.isAltDown())
+						&& e.getComponent() instanceof JTable) {
+					ApiMod mod = table
+							.getModel()
+							.getModList()
+							.get(table.getRowSorter().convertRowIndexToModel(r));
 
-				if (e.isPopupTrigger() && e.getComponent() instanceof JTable) {
 					JPopupMenu popup = createContextMenuFor(mod);
 					popup.show(e.getComponent(), e.getX(), e.getY());
 				}
