@@ -87,7 +87,6 @@ public class AddModPanel extends JPanel {
 				search.doClick();
 			}
 		} catch (HeadlessException | UnsupportedFlavorException | IOException e1) {
-			e1.printStackTrace();
 		}
 
 	}

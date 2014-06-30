@@ -188,7 +188,6 @@ public class MainWindow extends JFrame implements ModEventListener {
 				new ListSelectionListener() {
 					@Override
 					public void valueChanged(ListSelectionEvent e) {
-						System.out.println(e.toString());
 						if (table.getSelectedRow() >= 0) {
 							int row = table.getSelectedRow();
 							ApiMod mod = table
@@ -228,7 +227,7 @@ public class MainWindow extends JFrame implements ModEventListener {
 					popup.show(e.getComponent(), e.getX(), e.getY());
 				}
 			}
-			
+
 			@Override
 			public void mouseClicked(MouseEvent e) {
 				mouseReleased(e);
@@ -327,11 +326,7 @@ public class MainWindow extends JFrame implements ModEventListener {
 	private void doRefreshModList() {
 		List<ApiMod> mods = table.getModel().getModList();
 		mods.clear();
-		try {
-			mods.addAll(modManager.getInstalledMods());
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
+		mods.addAll(modManager.getAllInstalledMods().values());
 		table.getModel().fireTableDataChanged();
 	}
 }
