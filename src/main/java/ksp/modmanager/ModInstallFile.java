@@ -1,5 +1,6 @@
 package ksp.modmanager;
 
+import java.io.File;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -41,6 +42,18 @@ public class ModInstallFile {
 		}
 
 		return builder.toString();
+	}
+
+	public String getFullName() {
+		StringBuilder builder = new StringBuilder();
+		ModInstallFile parent = this;
+		while (parent.parent != null) {
+			builder.insert(0, File.separator);
+			builder.insert(1, parent.name);
+			parent = parent.parent;
+		}
+
+		return builder.toString().substring(1);
 	}
 
 	public List<ModInstallFile> getContainedFiles() {

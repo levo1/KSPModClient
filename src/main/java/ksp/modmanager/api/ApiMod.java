@@ -2,6 +2,8 @@ package ksp.modmanager.api;
 
 import java.util.List;
 
+import ksp.modmanager.EnabledMods.EnabledMod;
+
 import com.google.api.client.util.Key;
 
 public class ApiMod {
@@ -22,8 +24,7 @@ public class ApiMod {
 	private String sha1sum;
 	@Key
 	private long size;
-	@Key
-	public List<String> files;
+	public EnabledMod enableInfo;
 
 	public long getId() {
 		return id;
